@@ -3,7 +3,7 @@ main: com.griefcraft.lwc.LWCPlugin
 version: ${version}
 api-version: "26.1"
 author: Hidendra
-authors: [pop4959, Me_Goes_RAWR]
+authors: [pop4959, Me_Goes_RAWR, kubotan]
 website: https://www.spigotmc.org/resources/lwc-extended.69551/
 description: >
              Inventory protection & management utilizing SQLite or MySQL as its backend
