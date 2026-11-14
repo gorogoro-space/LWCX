@@ -29,10 +29,16 @@
 package com.griefcraft.cache;
 
 import com.griefcraft.lwc.LWC;
+import com.griefcraft.model.Flag;
 import com.griefcraft.model.Protection;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ProtectionCache {
 
@@ -99,11 +105,38 @@ public class ProtectionCache {
      */
     private final static Object FAKE_VALUE = new Object();
 
+    /**
+     * True while every protection in the database is known to be in the cache.
+     * Set after a precache that read the whole table, and cleared whenever the
+     * cache is cleared or a protection is evicted.
+     */
+    private boolean complete = false;
+
+    /**
+     * Cached protections that have the magnet flag, by protection id
+     */
+    private final Map<Integer, Protection> magnets = new HashMap<>();
+
     public ProtectionCache(LWC lwc) {
         this.lwc = lwc;
         this.capacity = lwc.getConfiguration().getInt("core.cacheSize", 10000);
 
-        this.references = new LRUCache<>(capacity);
+        this.references = new LRUCache<Protection, Object>(capacity) {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<Protection, Object> eldest) {
+                boolean evict = super.removeEldestEntry(eldest);
+
+                if (evict) {
+                    // a protection has left the cache, so it no longer holds every protection
+                    complete = false;
+                    magnets.remove(eldest.getKey().getId());
+                }
+
+                return evict;
+            }
+        };
         this.byCacheKey = new WeakLRUCache<>(capacity);
         this.byId = new WeakLRUCache<>(capacity);
         this.byKnownBlock = new WeakLRUCache<>(capacity);
@@ -180,6 +213,64 @@ public class ProtectionCache {
         byId.clear();
         byKnownBlock.clear();
         byKnownNulls.clear();
+
+        magnets.clear();
+        complete = false;
+    }
+
+    /**
+     * Check if every protection in the database is known to be in the cache
+     *
+     * @return
+     */
+    public boolean isComplete() {
+        return complete;
+    }
+
+    /**
+     * Mark whether every protection in the database is in the cache
+     *
+     * @param complete
+     */
+    public void setComplete(boolean complete) {
+        this.complete = complete;
+    }
+
+    /**
+     * Check if the given protection is a cached magnet protection
+     *
+     * @param protection
+     * @return
+     */
+    public boolean isMagnet(Protection protection) {
+        return protection != null && magnets.get(protection.getId()) == protection;
+    }
+
+    /**
+     * Gets the cached protections that have the magnet flag. Only contains
+     * every magnet protection while {@link #isComplete()} is true.
+     *
+     * @return a copy of the cached magnet protections
+     */
+    public List<Protection> getMagnetProtections() {
+        return new ArrayList<>(magnets.values());
+    }
+
+    /**
+     * Called when the magnet flag of a protection is added or removed
+     *
+     * @param protection
+     */
+    public void updateMagnet(Protection protection) {
+        if (protection == null || !references.containsKey(protection)) {
+            return;
+        }
+
+        if (protection.hasFlag(Flag.Type.MAGNET)) {
+            magnets.put(protection.getId(), protection);
+        } else {
+            magnets.remove(protection.getId());
+        }
     }
 
     /**
@@ -219,6 +310,10 @@ public class ProtectionCache {
         byCacheKey.put(protection.getCacheKey(), protection);
         byId.put(protection.getId(), protection);
 
+        if (protection.hasFlag(Flag.Type.MAGNET)) {
+            magnets.put(protection.getId(), protection);
+        }
+
         // get the protection's finder if it was found via that
         if (protection.getProtectionFinder() != null) {
             Block protectedBlock = protection.getBlock();
@@ -243,6 +338,7 @@ public class ProtectionCache {
 
         references.remove(protection);
         byId.remove(protection.getId());
+        magnets.remove(protection.getId());
 
         if (protection.getProtectionFinder() != null) {
             for (BlockState state : protection.getProtectionFinder()
