@@ -311,7 +311,7 @@ public class LWC {
                     "findAdjacentDoubleChest() cannot be called on a: " + block.getType());
         }
 
-        BlockState baseBlockState = block.getState();
+        BlockState baseBlockState = block.getState(false);
         Chest baseBlockData = null;
         try {
             baseBlockData = (Chest) baseBlockState.getBlockData();
@@ -452,9 +452,8 @@ public class LWC {
     public Map<Integer, ItemStack> depositItems(Block block, ItemStack itemStack) {
         BlockState blockState;
 
-        if ((blockState = block.getState()) != null && (blockState instanceof InventoryHolder)) {
+        if (block.getState(false) instanceof InventoryHolder holder) {
             Block doubleChestBlock = null;
-            InventoryHolder holder = (InventoryHolder) blockState;
 
             if (DoubleChestMatcher.PROTECTABLES_CHESTS.contains(block.getType())) {
                 doubleChestBlock = findAdjacentDoubleChest(block);
@@ -489,7 +488,7 @@ public class LWC {
 
                 // is it a double chest ?????
                 if (doubleChestBlock != null) {
-                    InventoryHolder holder2 = (InventoryHolder) doubleChestBlock.getState();
+                    InventoryHolder holder2 = (InventoryHolder) doubleChestBlock.getState(false);
                     remaining = holder2.getInventory().addItem(remainingItemStack);
                 }
 
