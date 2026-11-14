@@ -85,6 +85,7 @@ public class EntityBlockState implements BlockState {
         return entityBlock.getChunk();
     }
 
+    @SuppressWarnings("removal") // BlockState の実装に必要(削除予定の API を実装している)
     @Override
     public void setData(MaterialData materialData) {
         // Yeah, this does not work: entityBlock.setData(materialData.getData());
@@ -111,11 +112,13 @@ public class EntityBlockState implements BlockState {
         return false;
     }
 
+    @SuppressWarnings("removal") // BlockState の実装に必要(削除予定の API を実装している)
     @Override
     public byte getRawData() {
         throw new IllegalStateException("getRawData should not be called.");
     }
 
+    @SuppressWarnings("removal") // BlockState の実装に必要(削除予定の API を実装している)
     @Override
     public void setRawData(byte b) {
         throw new IllegalStateException("setRawData should not be called.");
@@ -183,6 +186,7 @@ public class EntityBlockState implements BlockState {
 
     }
 
+    @SuppressWarnings("removal") // BlockState の実装に必要(削除予定の API を実装している)
     @Override
     public MaterialData getData() {
         // TODO Auto-generated method stub

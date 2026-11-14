@@ -28,7 +28,6 @@
 
 package com.griefcraft.util;
 
-import org.bukkit.ChatColor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +35,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Colors {
+
+    // 非推奨の org.bukkit.ChatColor.COLOR_CHAR の代わり(§)
+    private static final char COLOR_CHAR = '§';
 
     // Color codes
     public static final String Black           = "\u00A70";
@@ -105,13 +107,13 @@ public class Colors {
         Matcher rgbMatcher = RGB_PATTERN.matcher(message);
         while (rgbMatcher.find()) {
             String rgbMatch = rgbMatcher.group();
-            String rgbColor = String.valueOf(ChatColor.COLOR_CHAR) + 'x' +
-                    ChatColor.COLOR_CHAR + rgbMatch.charAt(2) +
-                    ChatColor.COLOR_CHAR + rgbMatch.charAt(3) +
-                    ChatColor.COLOR_CHAR + rgbMatch.charAt(4) +
-                    ChatColor.COLOR_CHAR + rgbMatch.charAt(5) +
-                    ChatColor.COLOR_CHAR + rgbMatch.charAt(6) +
-                    ChatColor.COLOR_CHAR + rgbMatch.charAt(7);
+            String rgbColor = String.valueOf(COLOR_CHAR) + 'x' +
+                    COLOR_CHAR + rgbMatch.charAt(2) +
+                    COLOR_CHAR + rgbMatch.charAt(3) +
+                    COLOR_CHAR + rgbMatch.charAt(4) +
+                    COLOR_CHAR + rgbMatch.charAt(5) +
+                    COLOR_CHAR + rgbMatch.charAt(6) +
+                    COLOR_CHAR + rgbMatch.charAt(7);
             message = StringUtil.fastReplace(message, rgbMatch, rgbColor);
         }
         return message;

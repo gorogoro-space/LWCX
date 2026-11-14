@@ -73,6 +73,7 @@ public class DatabaseThread implements Runnable {
      */
     private int pingInterval = 0;
 
+    @SuppressWarnings("this-escape") // 元の設計(コンストラクタで設定の読み込みなどを呼ぶ)のまま
     public DatabaseThread(LWC lwc) {
         this.lwc = lwc;
         this.running = true;

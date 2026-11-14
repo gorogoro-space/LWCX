@@ -35,6 +35,7 @@ public class ConfirmAction extends Action {
      */
     private final Runnable callback;
 
+    @SuppressWarnings("this-escape") // 元の設計(コンストラクタで設定の読み込みなどを呼ぶ)のまま
     public ConfirmAction(Runnable callback) {
         this.callback = callback;
         setName("confirm");

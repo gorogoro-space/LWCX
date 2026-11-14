@@ -82,6 +82,7 @@ public class LWCBlockListener implements Listener {
      */
     private final Set<Material> blacklistedBlocks = new HashSet<>();
 
+    @SuppressWarnings("this-escape") // 元の設計(コンストラクタで設定の読み込みなどを呼ぶ)のまま
     public LWCBlockListener(LWCPlugin plugin) {
         this.plugin = plugin;
         loadAndProcessConfig();

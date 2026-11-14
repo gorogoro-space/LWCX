@@ -371,19 +371,21 @@ public class LWCPlayer implements CommandSender {
         player.sendMessage(s);
     }
 
-    public void sendMessage(String[] s) {
+    public void sendMessage(String... s) {
         for (String _s : s) {
             sendMessage(_s);
         }
     }
 
+    @SuppressWarnings("deprecation") // CommandSender の実装に必要(非推奨の API を実装している)
     @Override
     public void sendMessage(UUID uuid, String s) {
         player.sendMessage(player.getUniqueId(), s);
     }
 
+    @SuppressWarnings("deprecation") // CommandSender の実装に必要(非推奨の API を実装している)
     @Override
-    public void sendMessage(UUID uuid, String[] strings) {
+    public void sendMessage(UUID uuid, String... strings) {
         player.sendMessage(player.getUniqueId(), strings);
     }
 

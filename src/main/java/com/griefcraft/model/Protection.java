@@ -38,7 +38,6 @@ import com.griefcraft.util.StringUtil;
 import com.griefcraft.util.TimeUtil;
 import com.griefcraft.util.UUIDRegistry;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -1059,10 +1058,10 @@ public class Protection {
         StringBuilder flagStr = new StringBuilder();
 
         for (Flag.Type type : Flag.Type.values()) {
-            ChatColor color = ChatColor.RED;
+            String color = Colors.Red;
             for (Flag flag : flags.values()) {
                 if (type.equals(flag.getType())) {
-                    color = ChatColor.GREEN;
+                    color = Colors.Green;
                     break;
                 }
             }

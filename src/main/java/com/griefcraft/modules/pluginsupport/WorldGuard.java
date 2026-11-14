@@ -72,7 +72,7 @@ public class WorldGuard extends JavaModule {
         Plugin plugin = lwc.getPlugin().getServer().getPluginManager()
                 .getPlugin("WorldGuard");
         if (plugin != null) {
-            if (plugin.getDescription().getAPIVersion() != null) {
+            if (plugin.getPluginMeta().getAPIVersion() != null) {
                 worldGuardPlugin = (WorldGuardPlugin) plugin;
             } else if (configuration.getBoolean("worldguard.enabled", false)) {
                 lwc.log("An outdated version of WorldGuard has been detected.");

@@ -41,7 +41,7 @@ public class LocaleClassLoader extends ClassLoader {
         File file = new File(LWC.getInstance().getPlugin().getDataFolder() + File.separator + "locale" + File.separator + name);
 
         try {
-            return new URL("file:" + file.getAbsolutePath());
+            return file.toURI().toURL();
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }

@@ -28,7 +28,7 @@ public class Factions extends JavaModule {
     public void load(LWC lwc) {
         this.factions = LWC.getInstance().getPlugin().getServer().getPluginManager().getPlugin("Factions");
         this.factionCheck = lwc.getConfiguration().getBoolean("core.factionCheck", false);
-        String version = factions.getDescription().getVersion().replaceAll("[^\\d]", "");
+        String version = factions.getPluginMeta().getVersion().replaceAll("[^\\d]", "");
 
         if (version.compareTo("1695049") < 0) {
             this.legacy = true;

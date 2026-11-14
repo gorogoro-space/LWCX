@@ -65,7 +65,7 @@ public class AdminView extends JavaModule {
             return;
         }
 
-        if (!NumberUtils.isNumber(args[1])) {
+        if (!NumberUtils.isCreatable(args[1])) {
             lwc.sendLocale(sender, "protection.admin.invalidid", "id" ,args[1]);
             return;
         }

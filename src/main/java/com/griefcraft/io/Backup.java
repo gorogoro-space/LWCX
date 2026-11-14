@@ -30,6 +30,7 @@ package com.griefcraft.io;
 
 import com.griefcraft.cache.BlockCache;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -162,7 +163,13 @@ public class Backup {
 
                 // Create the stack
                 BlockCache blockCache = BlockCache.getInstance();
-                ItemStack itemStack = new ItemStack(blockCache.getBlockType(itemId), amount, damage);
+                ItemStack itemStack = new ItemStack(blockCache.getBlockType(itemId), amount);
+
+                // 非推奨の ItemStack(Material, int, short) の代わりに、耐久値は Damageable で設定する
+                if (damage != 0 && itemStack.getItemMeta() instanceof Damageable damageable) {
+                    damageable.setDamage(damage);
+                    itemStack.setItemMeta(damageable);
+                }
 
                 // add it to the block
                 rblock.setSlot(slot, itemStack);
@@ -221,7 +228,8 @@ public class Backup {
                 outputStream.writeShort(slot);
                 outputStream.writeShort(blockCache.getBlockId(stack.getType()));
                 outputStream.writeShort(stack.getAmount());
-                outputStream.writeShort(stack.getDurability());
+                // 非推奨の getDurability() の代わりに、耐久値は Damageable から読む
+                outputStream.writeShort(stack.getItemMeta() instanceof Damageable damageable ? damageable.getDamage() : 0);
             }
         }
 

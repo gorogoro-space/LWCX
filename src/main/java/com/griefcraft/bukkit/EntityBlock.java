@@ -53,6 +53,7 @@ public class EntityBlock implements Block {
         return 50000 + EntityBlock.entity.getUniqueId().hashCode();
     }
 
+    @SuppressWarnings("removal") // Block の実装に必要(削除予定の API を実装している)
     @Override
     public boolean isValidTool(@NotNull ItemStack itemStack) {
         return false;
@@ -75,6 +76,7 @@ public class EntityBlock implements Block {
         return new EntityBlock(entity);
     }
 
+    @SuppressWarnings("deprecation") // Block の実装に必要(非推奨の MetadataValue を使う API を実装している)
     @Override
     public List<MetadataValue> getMetadata(String s) {
         return entity.getMetadata(s);
@@ -90,6 +92,7 @@ public class EntityBlock implements Block {
         entity.removeMetadata(s, p);
     }
 
+    @SuppressWarnings("deprecation") // Block の実装に必要(非推奨の MetadataValue を使う API を実装している)
     @Override
     public void setMetadata(String s, MetadataValue mv) {
         entity.setMetadata(s, mv);
@@ -169,6 +172,7 @@ public class EntityBlock implements Block {
         return null;
     }
 
+    @SuppressWarnings("removal") // Block の実装に必要(削除予定の API を実装している)
     @Override
     public byte getData() {
         throw new IllegalStateException("getData should not be called.");
@@ -226,6 +230,7 @@ public class EntityBlock implements Block {
         return false;
     }
 
+    @SuppressWarnings("removal") // Block の実装に必要(削除予定の API を実装している)
     @Override
     public @NotNull BlockSoundGroup getSoundGroup() {
         return null;
@@ -419,6 +424,7 @@ public class EntityBlock implements Block {
 
     }
 
+    @SuppressWarnings("removal") // Block の実装に必要(削除予定の API を実装している)
     @Override
     public String getTranslationKey() {
         return null;

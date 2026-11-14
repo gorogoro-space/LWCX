@@ -123,7 +123,7 @@ public class Statistics {
                 continue;
             }
 
-            sender.sendMessage("  " + Colors.Dark_Green + plugin.getDescription().getName() + " v" + plugin.getDescription().getVersion() + Colors.Yellow + " -> " + Colors.Dark_Green + modules.size() + Colors.Yellow + " registered modules");
+            sender.sendMessage("  " + Colors.Dark_Green + plugin.getPluginMeta().getName() + " v" + plugin.getPluginMeta().getVersion() + Colors.Yellow + " -> " + Colors.Dark_Green + modules.size() + Colors.Yellow + " registered modules");
         }
         sender.sendMessage(" ");
 

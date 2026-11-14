@@ -7,7 +7,7 @@ public class MaterialUtil {
     /**
      * Best attempt effort to get the 1.13 Material associated with a 1.12 ID.
      */
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "removal"}) // 古い ID の変換表なので、LEGACY_SIGN など古い Material をそのまま残す
     public static Material getMaterialById(int id) {
         switch (id) {
             case 0:

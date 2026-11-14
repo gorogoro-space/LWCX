@@ -173,7 +173,7 @@ public class DoorsModule extends JavaModule {
      * @param doors           Blocks given must be the bottom block of the door
      */
     private void changeDoorStates(LWCProtectionInteractEvent event, boolean allowDoorToOpen, Block... doors) {
-        if (event.getEvent().isCancelled()) {
+        if (event.getEvent().useInteractedBlock() == org.bukkit.event.Event.Result.DENY) { // 非推奨の isCancelled() と同じ判定
             return;
         }
 

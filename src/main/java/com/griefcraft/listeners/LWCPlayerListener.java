@@ -615,7 +615,9 @@ public class LWCPlayerListener implements Listener {
                 final ChiseledBookshelf chiseledBookshelf = (ChiseledBookshelf) block.getState();
                 final org.bukkit.block.data.type.ChiseledBookshelf chiseledBookshelfBlockData = (org.bukkit.block.data.type.ChiseledBookshelf) block.getBlockData();
                 if (chiseledBookshelfBlockData.getFacing() == event.getBlockFace()) {
-                    final Vector clickedPosition = event.getClickedPosition();
+                    // 非推奨の getClickedPosition() と同じ値(ブロックの角からの相対位置)を getInteractionPoint() から求める
+                    final Location interactionPoint = event.getInteractionPoint();
+                    final Vector clickedPosition = interactionPoint == null ? null : interactionPoint.toVector().subtract(block.getLocation().toVector());
                     if (clickedPosition != null) {
                         final int slot = chiseledBookshelf.getSlot(clickedPosition);
                         final boolean isOccupied = chiseledBookshelfBlockData.isSlotOccupied(slot);
@@ -669,7 +671,7 @@ public class LWCPlayerListener implements Listener {
                 boolean hasPendingAction = (hasInteracted && actionCount > 1) || (!hasInteracted && actionCount > 0);
 
                 // If the event was cancelled and they have an action, warn them
-                if (event.isCancelled()) {
+                if (event.useInteractedBlock() == org.bukkit.event.Event.Result.DENY) { // 非推奨の isCancelled() と同じ判定
                     // only send it if a non-"interacted" action is set which is always set on the player
                     if (hasPendingAction) {
                         lwc.sendLocale(player, "lwc.pendingaction");

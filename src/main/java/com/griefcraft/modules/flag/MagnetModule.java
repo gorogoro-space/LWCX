@@ -47,6 +47,8 @@ import org.bukkit.entity.Item;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.util.BoundingBox;
 
 import java.util.ArrayList;
@@ -492,11 +494,11 @@ public class MagnetModule extends JavaModule {
         try {
             if (entity.getType() == ITEM_ENTITY_TYPE) {
                 ItemMeta itemMeta = ((Item) entity).getItemStack().getItemMeta();
-                if (itemMeta != null && containsLocation(itemMeta.getDisplayName())) {
+                if (itemMeta != null && itemMeta.hasDisplayName() && containsLocation(toLegacy(itemMeta.displayName()))) {
                     return true;
                 }
             } else if (entity.getType() == EntityType.ARMOR_STAND) {
-                if (containsLocation(entity.getCustomName())) {
+                if (containsLocation(toLegacy(entity.customName()))) {
                     return true;
                 }
             }
@@ -514,6 +516,11 @@ public class MagnetModule extends JavaModule {
                 return true;
         }
         return false;
+    }
+
+    // 非推奨の getDisplayName()・getCustomName() と同じく、名前を § の色コード付きの文字列にする
+    private static String toLegacy(Component component) {
+        return component == null ? null : LegacyComponentSerializer.legacySection().serialize(component);
     }
 
     @Override

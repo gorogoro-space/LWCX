@@ -26,6 +26,7 @@ public class LWCMCPCSupport extends JavaModule {
      */
     private final Set<String> blacklistedPlayers = new HashSet<>();
 
+    @SuppressWarnings("this-escape") // 元の設計(コンストラクタで設定の読み込みなどを呼ぶ)のまま
     public LWCMCPCSupport(LWC lwc) {
         this.lwc = lwc;
         loadAndProcessConfig();

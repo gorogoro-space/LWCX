@@ -168,6 +168,13 @@ public final class Version implements Comparable<Object> {
         return version.compareTo(this) == 0;
     }
 
+    // equals(compareTo が 0)と矛盾しないように、compareTo で必ず比べる値だけを使う
+    // (buildNumber は片方が 0 だと比べないので使わない。releaseLevelWeight は releaseLevel が 0 のときは比べない)
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(major, minor, patch, releaseLevel, releaseLevel != 0 ? releaseLevelWeight : 0);
+    }
+
     public int compareTo(Object o) {
         if (!(o instanceof Version)) {
             return 0;
