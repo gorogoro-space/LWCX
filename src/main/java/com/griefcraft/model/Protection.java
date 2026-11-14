@@ -509,6 +509,10 @@ public class Protection {
         if (!flags.containsKey(flag.getType())) {
             flags.put(flag.getType(), flag);
             modified = true;
+
+            if (flag.getType() == Flag.Type.MAGNET) {
+                updateMagnetCache();
+            }
             return true;
         }
 
@@ -527,6 +531,21 @@ public class Protection {
 
         flags.remove(flag.getType());
         this.modified = true;
+
+        if (flag.getType() == Flag.Type.MAGNET) {
+            updateMagnetCache();
+        }
+    }
+
+    /**
+     * Keep the cache's list of magnet protections in sync with this protection
+     */
+    private void updateMagnetCache() {
+        LWC lwc = LWC.getInstance();
+
+        if (lwc != null && lwc.getProtectionCache() != null) {
+            lwc.getProtectionCache().updateMagnet(this);
+        }
     }
 
     /**

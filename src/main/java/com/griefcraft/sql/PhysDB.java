@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -105,7 +106,9 @@ public class PhysDB extends Database {
     public boolean hasAllProtectionsCached() {
         ProtectionCache cache = LWC.getInstance().getProtectionCache();
 
-        return cache.size() >= protectionCount;
+        // The cache is kept in sync on create and remove, so once the whole table
+        // was loaded it stays authoritative even if protectionCount drifts.
+        return cache.isComplete() || cache.size() >= protectionCount;
     }
 
     PreparedStatement statement;
@@ -798,7 +801,7 @@ public class PhysDB extends Database {
 
             // Attempt to parse flags
             Object flags = root.get("flags");
-            if (flags != null && (rights instanceof JSONArray)) {
+            if (flags instanceof JSONArray) {
                 JSONArray array = (JSONArray) flags;
 
                 for (Object node : array) {
@@ -913,13 +916,31 @@ public class PhysDB extends Database {
             statement.setFetchSize(10);
 
             // scrape the protections from the result set now
-            List<Protection> protections = resolveProtections(statement);
+            int rows = 0;
+            List<Protection> protections = new ArrayList<Protection>();
+
+            try (ResultSet set = statement.executeQuery()) {
+                while (set.next()) {
+                    rows++;
+
+                    Protection protection = resolveProtection(set);
+
+                    if (protection != null) {
+                        protections.add(protection);
+                    }
+                }
+            }
 
             // throw all of the protections in
             for (Protection protection : protections) {
                 cache.addProtection(protection);
             }
 
+            // Fewer rows than the limit means the whole table was read. If nothing
+            // was evicted while filling, the cache now holds every protection.
+            if (rows < precacheSize && cache.size() == protections.size()) {
+                cache.setComplete(true);
+            }
         } catch (SQLException e) {
             printException(e);
         }
@@ -1031,9 +1052,9 @@ public class PhysDB extends Database {
                     }
                 }
             } else {
-                for (int x = baseX - radius; x < baseX + radius; x++) {
-                    for (int y = baseY - radius; y < baseY + radius; y++) {
-                        for (int z = baseZ - radius; z < baseZ + radius; z++) {
+                for (int x = baseX - radius; x <= baseX + radius; x++) {
+                    for (int y = baseY - radius; y <= baseY + radius; y++) {
+                        for (int z = baseZ - radius; z <= baseZ + radius; z++) {
                             Protection protection = cache.getProtection(world + ":" + x + ":" + y + ":" + z);
 
                             if (protection != null) {
@@ -1205,9 +1226,11 @@ public class PhysDB extends Database {
     public Protection registerProtection(int blockId, Protection.Type type, String world, String player,
                                          String data, int x, int y, int z) {
         ProtectionCache cache = LWC.getInstance().getProtectionCache();
+        boolean inserted = false;
         try {
             statement = prepare("INSERT INTO " + prefix
-                    + "protections (blockId, type, world, owner, password, x, y, z, date, last_accessed) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    + "protections (blockId, type, world, owner, password, x, y, z, date, last_accessed) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    true);
             statement.setInt(1, blockId);
             statement.setInt(2, type.ordinal());
             statement.setString(3, world);
@@ -1220,13 +1243,32 @@ public class PhysDB extends Database {
             statement.setLong(10, System.currentTimeMillis() / 1000L);
 
             statement.executeUpdate();
+            inserted = true;
+
+            // Find the id of the row we just inserted, so that we load the new
+            // protection even if another protection exists at the same location
+            int protectionId = -1;
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    protectionId = generatedKeys.getInt(1);
+                }
+            }
             statement = null;
 
             // We need to create the initial transaction for this protection
             // this transaction is viewable and modifiable during
             // POST_REGISTRATION
-            Protection protection = loadProtection(world, x, y, z, true);
+            Protection protection = protectionId > 0 ? loadProtection(protectionId) : null;
+
+            // Make sure the id really points at the row we inserted; if not, fall back to the location
+            if (protection == null || protection.getX() != x || protection.getY() != y || protection.getZ() != z
+                    || !Objects.equals(world, protection.getWorld())) {
+                protection = loadProtection(world, x, y, z, true);
+            }
+
             if (protection == null) {
+                // The row exists but could not be cached, so the cache is no longer complete
+                cache.setComplete(false);
                 return null;
             }
 
@@ -1255,6 +1297,11 @@ public class PhysDB extends Database {
             return protection;
         } catch (SQLException e) {
             printException(e);
+
+            // If the row was inserted, it may now exist without being cached
+            if (inserted) {
+                cache.setComplete(false);
+            }
         }
         return null;
     }
@@ -1846,6 +1893,9 @@ public class PhysDB extends Database {
             }
         } catch (SQLException e) {
             printException(e);
+
+            // The row may still exist while the caller drops it from the cache
+            LWC.getInstance().getProtectionCache().setComplete(false);
         }
 
         // removeProtectionHistory(protectionId);
