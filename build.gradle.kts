@@ -1,16 +1,11 @@
-import java.util.*
-
 plugins {
     id("java-library")
-    id("maven-publish")
-    id("io.github.goooler.shadow") version "8.1.7"
 }
 
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
-    withSourcesJar()
 }
 
 repositories {
@@ -25,73 +20,48 @@ repositories {
 }
 
 dependencies {
-    compileOnly(group = "io.papermc.paper", name = "paper-api", version = "1.21.11-R0.1-SNAPSHOT")
-    compileOnly(group = "com.sk89q.worldedit", name = "worldedit-core", version = "7.1.0") {
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    compileOnly("com.sk89q.worldedit:worldedit-core:7.1.0") {
         isTransitive = false
     }
-    compileOnly(group = "com.sk89q.worldedit", name = "worldedit-bukkit", version = "7.1.0")  {
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.1.0") {
         isTransitive = false
     }
-    compileOnly(group = "com.sk89q.worldguard", name = "worldguard-core", version = "7.0.0") {
+    compileOnly("com.sk89q.worldguard:worldguard-core:7.0.0") {
         isTransitive = false
     }
-    compileOnly(group = "com.sk89q.worldguard", name = "worldguard-bukkit", version = "7.0.0") {
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.0") {
         isTransitive = false
     }
-    compileOnly(group = "com.palmergames.bukkit.towny", name = "towny", version = "0.98.2.0")
-    compileOnly(group = "com.massivecraft", name = "Factions", version = "1.6.9.5-U0.4.9")
-    compileOnly(group = "com.github.MilkBowl", name = "VaultAPI", version = "1.7.1")
-    compileOnly(group = "org.apache.commons", name = "commons-lang3", version = "3.19.0")
-    compileOnly(group = "com.googlecode.json-simple", name = "json-simple", version = "1.1.1")
-    compileOnly(group = "com.google.guava", name = "guava", version = "33.3.1-jre")
-    implementation(group = "org.bstats", name = "bstats-bukkit", version = "3.0.2")
+    compileOnly("com.palmergames.bukkit.towny:towny:0.98.2.0")
+    compileOnly("com.massivecraft:Factions:1.6.9.5-U0.4.9")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
+    compileOnly("org.apache.commons:commons-lang3:3.19.0")
+    compileOnly("com.googlecode.json-simple:json-simple:1.1.1")
+    compileOnly("com.google.guava:guava:33.3.1-jre")
 }
 
 tasks {
     withType<JavaCompile> {
         options.encoding = "UTF-8"
-    }
-    jar {
-        archiveClassifier.set("noshade")
+        // 警告はすべて出す(0 件を保つ)
+        options.compilerArgs.add("-Xlint:all")
     }
     processResources {
+        val version = project.version.toString()
+        inputs.property("version", version)
         filesMatching("plugin.yml") {
-            expand(
-                "version" to project.version,
-            )
+            expand("version" to version)
         }
     }
-    shadowJar {
-        archiveClassifier.set("")
-        archiveFileName.set("${rootProject.name.uppercase(Locale.getDefault())}-${project.version}.jar")
-        relocate("org.bstats", "${project.group}.${rootProject.name}.lib.bstats")
+    jar {
+        archiveFileName.set("LWC-${project.version}.jar")
         manifest {
             attributes("paperweight-mappings-namespace" to "mojang")
         }
-    }
-    build {
-        dependsOn(shadowJar)
-    }
-}
-
-publishing {
-    repositories {
-        if (project.hasProperty("mavenUsername") && project.hasProperty("mavenPassword")) {
-            maven {
-                credentials {
-                    username = "${project.property("mavenUsername")}"
-                    password = "${project.property("mavenPassword")}"
-                }
-                url = uri("https://repo.codemc.io/repository/maven-releases/")
-            }
-        }
-    }
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = "${project.group}"
-            artifactId = project.name
-            version = "${project.version}"
-            from(components["java"])
+        // LWC のライセンス(BSD 2 条項)は、バイナリの配布にも著作権表示と条文を付けることを求めている
+        from(files("LICENSE")) {
+            into("META-INF")
         }
     }
 }

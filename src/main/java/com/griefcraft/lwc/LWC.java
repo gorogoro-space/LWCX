@@ -81,8 +81,7 @@ import com.griefcraft.sql.PhysDB;
 import com.griefcraft.util.*;
 import com.griefcraft.util.config.Configuration;
 import com.griefcraft.util.matchers.DoubleChestMatcher;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
@@ -179,6 +178,7 @@ public class LWC {
      */
     private boolean alternativeHoppers;
 
+    @SuppressWarnings("this-escape") // 元の設計(コンストラクタでインスタンスを登録し、キャッシュなどに自分を渡す)のまま
     public LWC(LWCPlugin plugin) {
         this.plugin = plugin;
         LWC.instance = this;
@@ -241,7 +241,7 @@ public class LWC {
      * @return
      */
     public static String normalizeMaterialName(Material material) {
-        String name = StringUtils.replace(material.toString().toLowerCase(), "block", "");
+        String name = material.toString().toLowerCase().replace("block", "");
 
         // some name normalizations
         if (name.contains("sign")) {
@@ -1014,9 +1014,9 @@ public class LWC {
                 try {
                     // prefix[0]: Only use the first
                     if (ArrayUtils.isEmpty(prefix)) {
-                        ((Player) sender).spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(line));
+                        sender.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(line));
                     } else {
-                        ((Player) sender).spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(prefix[0] + line));
+                        sender.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(prefix[0] + line));
                     }
                 } catch (NoSuchMethodError e) {
                     // prefix[0]: Only use the first
@@ -1704,8 +1704,6 @@ public class LWC {
             currency = new VaultCurrency();
         }
 
-        plugin.getUpdater().init();
-
         log("Connecting to " + Database.DefaultType);
         try {
             if (!physicalDatabase.connect()) {
@@ -1728,8 +1726,6 @@ public class LWC {
 
         // We are now done loading!
         moduleLoader.loadAll();
-
-        // Should we try metrics?
     }
 
     /**
@@ -2213,7 +2209,7 @@ public class LWC {
      * @return the plugin version
      */
     public double getVersion() {
-        return Double.parseDouble(plugin.getDescription().getVersion());
+        return Double.parseDouble(plugin.getPluginMeta().getVersion());
     }
 
     public DefaultsCache getDefaultsCache() {

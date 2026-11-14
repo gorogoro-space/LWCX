@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -89,19 +88,8 @@ public class UUIDRegistry {
             return offlinePlayer.getName();
         }
 
-        // Third way: use the web API
-        try {
-            Map<UUID, String> results = new NameFetcher(Arrays.asList(uuid)).call();
-
-            if (results.containsKey(uuid)) {
-                updateCache(uuid, results.get(uuid));
-                return results.get(uuid);
-            } else {
-                return null;
-            }
-        } catch (Exception e) {
-            return null;
-        }
+        // Mojang への問い合わせ(NameFetcher)は、外部と通信しない方針で削除した
+        return null;
     }
 
     /**
@@ -110,7 +98,7 @@ public class UUIDRegistry {
      * @param name
      * @return
      */
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // オフラインモードの Bukkit.getOfflinePlayer(String)(通信しない)
     public static UUID getUUID(String name) {
         String nameLower = name.toLowerCase();
 
@@ -124,16 +112,18 @@ public class UUIDRegistry {
             }
 
             if (Bukkit.getOnlineMode()) {
-                Map<String, UUID> results = new UUIDFetcher(Arrays.asList(nameLower)).call();
+                // Mojang への問い合わせ(UUIDFetcher)は、外部と通信しない方針で削除した。
+                // オンラインの人と、サーバーのキャッシュ(usercache.json)だけを見る
+                Player player = Bukkit.getPlayerExact(name);
+                OfflinePlayer offlinePlayer = player != null ? player : Bukkit.getOfflinePlayerIfCached(name);
 
-                // The returned name is the exact casing; so we need to look for it
-                // in the case-insensitive version
-                for (String key : results.keySet()) {
-                    if (key.equalsIgnoreCase(name)) {
-                        UUID uuid = results.get(key);
-                        updateCache(uuid, key);
-                        return uuid;
+                if (offlinePlayer != null) {
+                    if (offlinePlayer.getName() != null) {
+                        name = offlinePlayer.getName();
                     }
+
+                    updateCache(offlinePlayer.getUniqueId(), name);
+                    return offlinePlayer.getUniqueId();
                 }
             } else {
                 OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(name);

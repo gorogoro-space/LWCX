@@ -40,14 +40,10 @@ import com.griefcraft.scripting.event.LWCCommandEvent;
 import com.griefcraft.sql.Database;
 import com.griefcraft.util.Completions;
 import com.griefcraft.util.StringUtil;
-import com.griefcraft.util.Updater;
 import com.griefcraft.util.VersionUtil;
 import com.griefcraft.util.locale.LWCResourceBundle;
 import com.griefcraft.util.locale.LocaleClassLoader;
 import com.griefcraft.util.locale.UTF8Control;
-import org.bstats.bukkit.Metrics;
-import org.bstats.charts.AdvancedPie;
-import org.bstats.charts.SimplePie;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -84,11 +80,6 @@ public class LWCPlugin extends JavaPlugin {
      * The message parser to parse messages with
      */
     private MessageParser messageParser;
-
-    /**
-     * LWC updater
-     */
-    private Updater updater;
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String commandLabel, String[] args) {
@@ -350,7 +341,6 @@ public class LWCPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         lwc = new LWC(this);
-        preload();
 
         // make sure this is a safe version
         Set<String> unsupportedVersions = new HashSet<>(Arrays.asList("1.8", "1.9", "1.10", "1.11", "1.12"));
@@ -365,44 +355,12 @@ public class LWCPlugin extends JavaPlugin {
             this.log("");
             this.log("This version of LWCX is not compatible with MineCraft " + matcher.group());
             this.log("LWCX 2.0.0 and above can only be used on servers running MineCraft 1.13+");
-            this.log("Please download an older version of the plugin at " + this.getDescription().getWebsite());
+            this.log("Please download an older version of the plugin at " + this.getPluginMeta().getWebsite());
             this.getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
-        Metrics m = new Metrics(this, 5180);
-
-        m.addCustomChart(new AdvancedPie("protected_blocks", () -> {
-            Map<String, Integer> map = new HashMap<String, Integer>();
-
-            if (lwc.getPhysicalDatabase().getProtectionCount() >= 50000) {
-                map.put("Over 50k", 1);
-            } else if (lwc.getPhysicalDatabase().getProtectionCount() >= 25000) {
-                map.put("Over 25k", 1);
-            } else if (lwc.getPhysicalDatabase().getProtectionCount() >= 10000) {
-                map.put("Over 10k", 1);
-            } else if (lwc.getPhysicalDatabase().getProtectionCount() >= 5000) {
-                map.put("Over 5k", 1);
-            } else if (lwc.getPhysicalDatabase().getProtectionCount() >= 1000) {
-                map.put("Over 1k", 1);
-            } else {
-                map.put("Under 1k", 1);
-            }
-
-            return map;
-        }));
-
-        m.addCustomChart(new SimplePie("used_language", this::getCurrentLocale));
-
-        m.addCustomChart(new SimplePie("database_used", () -> {
-            String database = lwc.getConfiguration().getString("database.adapter");
-            if (database.equalsIgnoreCase("mysql"))
-                return "MySQL";
-
-            return "SQLite";
-        }));
-
-        LWCInfo.setVersion(getDescription().getVersion());
+        LWCInfo.setVersion(getPluginMeta().getVersion());
         LWC.ENABLED = true;
 
         loadLocales();
@@ -453,7 +411,7 @@ public class LWCPlugin extends JavaPlugin {
             locale = new LWCResourceBundle(defaultBundle);
 
             try {
-                optionalBundle = ResourceBundle.getBundle("lwc", new Locale(localization), new LocaleClassLoader(),
+                optionalBundle = ResourceBundle.getBundle("lwc", Locale.of(localization), new LocaleClassLoader(),
                         new UTF8Control());
             } catch (MissingResourceException e) {
             }
@@ -490,14 +448,6 @@ public class LWCPlugin extends JavaPlugin {
 
         // create the message parser
         messageParser = new SimpleMessageParser(locale);
-    }
-
-    /**
-     * Load shared libraries and other misc things
-     */
-    private void preload() {
-        updater = new Updater();
-        updater.init(); // Check for updates
     }
 
     /**
@@ -558,13 +508,6 @@ public class LWCPlugin extends JavaPlugin {
      */
     public MessageParser getMessageParser() {
         return messageParser;
-    }
-
-    /**
-     * @return the Updater instance
-     */
-    public Updater getUpdater() {
-        return updater;
     }
 
     @Override

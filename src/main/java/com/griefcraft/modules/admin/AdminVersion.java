@@ -32,7 +32,6 @@ import com.griefcraft.lwc.LWC;
 import com.griefcraft.scripting.JavaModule;
 import com.griefcraft.scripting.event.LWCCommandEvent;
 import com.griefcraft.util.Colors;
-import com.griefcraft.util.Updater;
 import org.bukkit.command.CommandSender;
 
 public class AdminVersion extends JavaModule {
@@ -58,18 +57,9 @@ public class AdminVersion extends JavaModule {
         // we have the right command
         event.setCancelled(true);
 
-        // force a reload of the latest versions
         String pluginColor = Colors.Dark_Green;
 
-        lwc.sendLocale(sender, "protection.admin.version.finalize", "plugin_website", lwc.getPlugin().getDescription().getWebsite(), "plugin_color", pluginColor, "plugin_version", lwc.getPlugin().getDescription().getVersion(), "latest_plugin", getVersion());
-    }
-
-    public static String getVersion() {
-        String version = "";
-        Object[] updates = Updater.getLastUpdate();
-        if (updates.length == 2) {
-            version = (String) updates[0];
-        }
-        return version;
+        // 最新版の確認(外部との通信)は削除したので、latest_plugin は空にする
+        lwc.sendLocale(sender, "protection.admin.version.finalize", "plugin_website", lwc.getPlugin().getPluginMeta().getWebsite(), "plugin_color", pluginColor, "plugin_version", lwc.getPlugin().getPluginMeta().getVersion(), "latest_plugin", "");
     }
 }
