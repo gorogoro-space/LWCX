@@ -4,7 +4,7 @@ version: ${version}
 api-version: "1.20.6"
 author: Hidendra
 authors: [pop4959, Me_Goes_RAWR, kubotan]
-website: https://www.spigotmc.org/resources/lwc-extended.69551/
+website: https://github.com/gorogoro-space/LWCX
 description: >
              Inventory protection & management utilizing SQLite or MySQL as its backend
              Other blocks can also be protected individually, if configured.
