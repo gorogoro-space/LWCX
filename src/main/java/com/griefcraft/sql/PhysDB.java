@@ -130,12 +130,11 @@ public class PhysDB extends Database {
                 index++;
             }
 
-            ResultSet set = statement.executeQuery();
-
-            if (set.next()) {
-                Object object = set.getObject(column);
-                set.close();
-                return object;
+            // 行が無いときも必ず閉じる(キャッシュされた文で読み取りのトランザクションを残さない)
+            try (ResultSet set = statement.executeQuery()) {
+                if (set.next()) {
+                    return set.getObject(column);
+                }
             }
         } catch (Exception e) {
             printException(e);
@@ -194,10 +193,11 @@ public class PhysDB extends Database {
             UUID uuid = UUIDRegistry.getUUID(player);
             statement.setString(1, uuid != null ? uuid.toString() : player);
 
-            ResultSet set = statement.executeQuery();
-
-            if (set.next()) {
-                count = set.getInt("count");
+            // 必ず閉じる(閉じないと、キャッシュされた文が読み取りのトランザクションを開いたままにし、WAL のチェックポイントが進まない)
+            try (ResultSet set = statement.executeQuery()) {
+                if (set.next()) {
+                    count = set.getInt("count");
+                }
             }
         } catch (SQLException e) {
             printException(e);
@@ -220,10 +220,12 @@ public class PhysDB extends Database {
                     "SELECT COUNT(*) AS count FROM " + prefix + "history WHERE LOWER(player) = LOWER(?)");
             UUID uuid = UUIDRegistry.getUUID(player);
             statement.setString(1, uuid != null ? uuid.toString() : player);
-            ResultSet set = statement.executeQuery();
 
-            if (set.next()) {
-                count = set.getInt("count");
+            // 必ず閉じる(キャッシュされた文で読み取りのトランザクションを残さない)
+            try (ResultSet set = statement.executeQuery()) {
+                if (set.next()) {
+                    count = set.getInt("count");
+                }
             }
 
         } catch (SQLException e) {
@@ -249,10 +251,11 @@ public class PhysDB extends Database {
             statement.setString(1, uuid != null ? uuid.toString() : player);
             statement.setInt(2, blockId);
 
-            ResultSet set = statement.executeQuery();
-
-            if (set.next()) {
-                count = set.getInt("count");
+            // 必ず閉じる(キャッシュされた文で読み取りのトランザクションを残さない)
+            try (ResultSet set = statement.executeQuery()) {
+                if (set.next()) {
+                    count = set.getInt("count");
+                }
             }
 
         } catch (SQLException e) {
@@ -2472,9 +2475,11 @@ public class PhysDB extends Database {
             PreparedStatement statement = prepare("SELECT defaultdata FROM " + prefix + "defaults"
                     + " WHERE player=?");
             statement.setString(1, player);
-            ResultSet rs = statement.executeQuery();
-            if(rs.next()) {
-                return rs.getString("defaultdata");
+            // 必ず閉じる(キャッシュされた文で読み取りのトランザクションを残さない)
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("defaultdata");
+                }
             }
         } catch (SQLException e) {
             printException(e);
