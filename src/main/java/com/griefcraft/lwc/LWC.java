@@ -78,6 +78,7 @@ import com.griefcraft.scripting.event.LWCReloadEvent;
 import com.griefcraft.scripting.event.LWCSendLocaleEvent;
 import com.griefcraft.sql.Database;
 import com.griefcraft.sql.PhysDB;
+import com.griefcraft.sql.SQLiteJournal;
 import com.griefcraft.util.*;
 import com.griefcraft.util.config.Configuration;
 import com.griefcraft.util.matchers.DoubleChestMatcher;
@@ -157,6 +158,11 @@ public class LWC {
      * Updates to the database that can be ran on a seperate thread
      */
     private DatabaseThread databaseThread;
+
+    /**
+     * SQLite(WAL)のチェックポイントを別スレッドで行うタスク
+     */
+    private SQLiteJournal.Checkpointer sqliteCheckpointer;
 
     /**
      * The permissions handler
@@ -592,7 +598,14 @@ public class LWC {
             databaseThread = null;
         }
 
+        // チェックポイントのタスクと専用の接続を止めてから、メインの接続で WAL を本体に書き戻して -wal を空にする
+        if (sqliteCheckpointer != null) {
+            sqliteCheckpointer.stop();
+            sqliteCheckpointer = null;
+        }
+
         if (physicalDatabase != null) {
+            physicalDatabase.checkpointSQLiteOnShutdown();
             physicalDatabase.dispose();
         }
 
@@ -1711,6 +1724,7 @@ public class LWC {
                 return;
             }
             physicalDatabase.load();
+            sqliteCheckpointer = physicalDatabase.startSQLiteCheckpoint();
         } catch (Exception e) {
             e.printStackTrace();
         }

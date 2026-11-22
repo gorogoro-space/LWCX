@@ -36,6 +36,23 @@ Contributing to LWCX is encouraged, and very easy. Fork the repository, and buil
 - 保護の総数とキャッシュの件数が 1 件でもずれると、保護の検索がすべてメインスレッドでの SQL に切り替わっていた問題を直した
 - マグネット(`magnet` フラグ)が、すべてのアイテムではなくマグネットのチェストを起点に探すようにし、処理を複数の tick に分けた
 - 外部との通信をやめた(bStats への統計の送信、更新の確認、Mojang へのプレイヤー名・UUID の問い合わせ)。プレイヤー名と UUID は、オンラインの人とサーバーのキャッシュ(`usercache.json`)だけから引く。そのため、オンラインモードのサーバーで一度も来たことのない人を名前で指定することはできない
+- SQLite を WAL モード + `synchronous=NORMAL` で使うようにした。保護の作成・削除などの書き込みのたびにメインスレッドで `fsync` していたため、ディスクが混んでいるとサーバーが長く止まることがあった。`fsync` は、別スレッドで定期的に行うチェックポイントのときだけになる(下の「SQLite の設定」)
+
+## SQLite の設定
+
+`plugins/LWC/core.yml` の `database:` の下で設定します。項目が無いときは、次の既定値で動きます。
+
+```yaml
+    sqlite:
+        journalMode: WAL        # WAL or DELETE
+        synchronous: NORMAL     # NORMAL or FULL
+        checkpointInterval: 60  # チェックポイントの間隔(秒)。0 にすると SQLite の自動チェックポイント(メインスレッドで動くのでおすすめしない)
+```
+
+- 元の方式に戻すときは、`journalMode: DELETE`・`synchronous: FULL` にしてサーバーを再起動します。
+- `synchronous: NORMAL` では、OS ごと電源が落ちたときに、直前のいくつかの変更が失われることがあります(データベースは壊れません)。サーバーのプロセスだけが落ちた場合は失われません。
+- WAL モードでは、サーバーの動作中に `lwc.db` だけをコピーしても、直近の変更が入りません。動作中にバックアップを取るときは、`sqlite3 lwc.db "VACUUM INTO 'コピー先'"` を使ってください。サーバーを止めた後なら、`lwc.db` だけをコピーすれば十分です(止めるときに `lwc.db-wal` の内容を本体に書き戻します)。
+- チェックポイントで WAL を書き戻しきれない状態が続き、`lwc.db-wal` が 64MB を超えると、ログに警告が出ます(1 時間に 1 回まで)。サーバーを再起動すると元に戻ります。
 
 ## 動作環境
 

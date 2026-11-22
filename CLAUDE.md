@@ -64,6 +64,8 @@
 - BlockPhysicsEvent など発生頻度が極端に高いイベントは使わない
 - 保護の検索は `ProtectionCache` を使う。キャッシュに全保護が載っている(`ProtectionCache.isComplete()`)ときは、メインスレッドで SQL を実行しない。キャッシュを全消去する処理・保護を DB から消す処理を足すときは、`complete` の扱いも合わせて直す
 - メインスレッドでファイルや DB の同期 I/O を増やさない(起動時・リロード時の読み込みは除く)
+- SQLite は WAL + `synchronous=NORMAL`(`sql/SQLiteJournal`、設定は `core.yml` の `database.sqlite`)。PRAGMA は `Database.connect()` で当てる。自動のチェックポイントは止め(`wal_autocheckpoint=0`)、チェックポイント専用の接続と非同期のタスクで `wal_checkpoint(PASSIVE)` を行う。終了時は `LWC.destruct()` でメインの接続から `TRUNCATE` する。メインスレッドで `fsync` が起きる処理(`wal_autocheckpoint` を戻すなど)を足さない
+- `executeQuery` の `ResultSet` は、必ず閉じる(try-with-resources にする)。文はキャッシュ(`Database.prepare`)で使い回すので、1 行だけ読んで閉じないと、読み取りのトランザクションが開いたまま残る。そうなると、チェックポイントで WAL を全部書き戻せず、`-wal` が再起動まで大きくなり続ける
 - 定期タスクは最小限にし、追加するときは頻度と理由を設計案に書く(マグネットは毎 tick 動き、50 tick で全マグネットを一巡する)
 
 ### 外部と通信しない
@@ -78,6 +80,7 @@
 
 - 保護の総数(`protectionCount`)とキャッシュの件数を厳密に比べていたため、1 件ずれるだけでキャッシュを使わなくなり、マグネットがメインスレッドで SQL を実行し続けていた(2.4.3 で修正。`ProtectionCache` の `complete` フラグで判定する)
 - マグネットの収納枠を周回の累計で計算すると、使わなかった枠が貯まって一度に大量に吸い込む(2.4.3 の開発中に発生。毎 tick 分を足し、1 tick 分を上限にした)
+- SQLite を WAL にしたところ、`PhysDB` の件数を数えるメソッドなどが `ResultSet` を閉じていなかったため、チェックポイントが進まず `-wal` が大きくなり続けた(2.4.4 の開発中に発生。try-with-resources で閉じるようにした)。書き込みを止めた状態で、別のプロセスから `sqlite3 lwc.db "PRAGMA wal_checkpoint(PASSIVE);"` を実行し、結果の 3 つ目(checkpointed)が 2 つ目(log)に届いているかを見ると切り分けられる
 - 動作確認は目で追える設定(マグネットの `perSweep` を小さくするなど)で行う
 
 ## 使わない機能
@@ -88,14 +91,14 @@
   - `create` は 250 件ずつメインスレッドでブロックを読む(約 2,100 回)。読み込まれていないチャンクはその場で同期的に読み込むので、保護のあるチャンクをほぼすべて読み込むことになり、そのたびにサーバーが止まる(合計で数分〜数十分の見込み)。読み込んだチャンクの分だけメモリも増える
   - 中身はアイテムの種類・数・耐久値だけを保存する。エンチャント・名前・本の中身などは失われる
   - `restore` は保護を今の DB に足す形で全件登録し直す(約 104 万件に増える)。ブロックは種類だけを置き直すので、向きなども戻らない
-- バックアップは、サーバーを止めて `plugins/LWC/lwc.db` をコピーする方法で取る
+- バックアップは、サーバーを止めて `plugins/LWC/lwc.db` をコピーする方法で取る。動作中に取るときは `sqlite3 lwc.db "VACUUM INTO '<コピー先>'"` を使う(WAL なので、動作中に `lwc.db` だけをコピーしても直近の変更が入らない)
 
 ## ファイル構成(src/main/java/com/griefcraft/)
 
 - `lwc/LWCPlugin.java` — メインクラス(言語ファイル・DB の読み込み、リスナーの登録)
 - `lwc/LWC.java` — 本体(設定、保護の検索・権限の判定、メッセージの送信、モジュールの管理)
 - `cache/` — 保護のキャッシュ(`ProtectionCache`)、ブロック ID のキャッシュ(`BlockCache`)など
-- `sql/` — DB(`PhysDB` が保護の読み書き。SQLite / MySQL)
+- `sql/` — DB(`PhysDB` が保護の読み書き。SQLite / MySQL。`SQLiteJournal` が SQLite の WAL の設定とチェックポイント)
 - `model/` — 保護(`Protection`)、フラグ、権限、プレイヤーなど
 - `listeners/` — ブロック・プレイヤー・エンティティのイベントのリスナー
 - `modules/` — 機能ごとのモジュール(`admin` の `/lwc admin` コマンド、`flag` のマグネットなど、`doors`、`limits`、`pluginsupport` の WorldGuard・Towny・Factions 連携など)

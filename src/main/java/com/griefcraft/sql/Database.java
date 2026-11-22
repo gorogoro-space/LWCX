@@ -112,6 +112,12 @@ public abstract class Database {
      */
     private boolean useStatementCache = true;
 
+    /**
+     * SQLite のジャーナルの設定と、実際の journal_mode(SQLite で接続したときだけ)
+     */
+    private SQLiteJournal.Settings sqliteSettings = null;
+    private String sqliteJournalMode = null;
+
     public Database() {
         currentType = DefaultType;
 
@@ -220,6 +226,13 @@ public abstract class Database {
             connection = DriverManager.getConnection("jdbc:" + currentType.toString().toLowerCase() + ":" + getDatabasePath(),
                     properties);
             connected = true;
+
+            // SQLite は WAL + synchronous=NORMAL にして、コミットごとの fsync をなくす
+            if (currentType == Type.SQLite) {
+                sqliteSettings = SQLiteJournal.loadSettings();
+                sqliteJournalMode = SQLiteJournal.applyPragmas(connection, sqliteSettings);
+            }
+
             return true;
         } catch (SQLException e) {
             log("Failed to connect to " + currentType + ": " + e.getErrorCode() + " - " + e.getMessage());
@@ -229,6 +242,30 @@ public abstract class Database {
             }
             return false;
         }
+    }
+
+    /**
+     * WAL のとき、別スレッドの専用の接続でのチェックポイントを開始する(LWC 本体のデータベースだけで使う)
+     *
+     * @return 開始したタスク。SQLite・WAL でないときや、設定で使わないときは null
+     */
+    public SQLiteJournal.Checkpointer startSQLiteCheckpoint() {
+        if (currentType != Type.SQLite || sqliteSettings == null || !"wal".equals(sqliteJournalMode)) {
+            return null;
+        }
+
+        return SQLiteJournal.Checkpointer.start(LWC.getInstance().getPlugin(), getDatabasePath(), sqliteSettings);
+    }
+
+    /**
+     * 終了時に、この接続で wal_checkpoint(TRUNCATE) を行う(SQLite・WAL のときだけ)
+     */
+    public void checkpointSQLiteOnShutdown() {
+        if (currentType != Type.SQLite || connection == null) {
+            return;
+        }
+
+        SQLiteJournal.checkpointTruncate(connection);
     }
 
     /**
